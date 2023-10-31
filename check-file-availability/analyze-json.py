@@ -58,6 +58,7 @@ for fn in DATAFILES:
     file_size_mismatch = 0
     mod_time_mismatch = 0
     other_reason = 0
+    status_code = 0
     unreachable = 0
 
     for m in excludedlist:
@@ -70,6 +71,8 @@ for fn in DATAFILES:
             file_size_mismatch += 1
         elif "Mod time mismatch" in reason:
             mod_time_mismatch += 1
+        elif "Got status code" in reason:
+            status_code += 1
         elif "Unreachable" in reason:
             unreachable += 1
         else:
@@ -78,4 +81,4 @@ for fn in DATAFILES:
     fallback = data.get('Fallback', False)
     fallback = 1 if fallback else 0
 
-    print(f"{date} {n_total} {n_included} {n_excluded} {country_only} {file_not_found} {file_size_mismatch} {mod_time_mismatch} {unreachable} {other_reason} {fallback}")
+    print(f"{date} {n_total} {n_included} {n_excluded} {country_only} {file_not_found} {file_size_mismatch} {mod_time_mismatch} {status_code} {unreachable} {other_reason} {fallback}")

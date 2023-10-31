@@ -15,11 +15,12 @@ set terminal pop
 
 plot ARG1 using 1:3  w l lw 2 title "selected", \
      ARG1 using 1:5  w l title "excluded: country only", \
-     ARG1 using 1:6  w l title "excluded: health-check 404" linecolor rgb "red", \
+     ARG1 using 1:6  w l title "excluded: health-check 404", \
      ARG1 using 1:7  w l title "excluded: file size mismatch", \
      ARG1 using 1:8  w l title "excluded: mod time mismatch", \
-     ARG1 using 1:9  w l title "excluded: unreachable", \
-     ARG1 using 1:10 w l title "excluded: other reason" linecolor rgb "green", \
-     ARG1 using 1:($11 * GPVAL_Y_MAX) with filledcurves lt nodraw title "fallback"
+     ARG1 using 1:9  w l title "excluded: status code", \
+     ARG1 using 1:10  w l title "excluded: unreachable", \
+     ARG1 using 1:11 w l title "excluded: other reason", \
+     ARG1 using 1:($12 * GPVAL_Y_MAX) with filledcurves lt nodraw title "fallback"
 
 pause mouse close
