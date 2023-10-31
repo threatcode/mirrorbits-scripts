@@ -1,19 +1,27 @@
 #!/usr/bin/python3
 
+import argparse
 import json
 import logging
 import os
 import sys
 
+parser = argparse.ArgumentParser(
+    description="Analyze mirrorbits JSON replies")
+parser.add_argument("-d", "--debug", action="store_true",
+    help="print debug messages")
+parser.add_argument("DATADIR")
+args = parser.parse_args()
+
 log = logging.getLogger(__name__)
 log.addHandler(logging.StreamHandler())
-log.setLevel(logging.INFO)
+log.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
-if sys.argv[1] in ["-d", "--debug"]:
-    log.setLevel(logging.DEBUG)
-    sys.argv.pop(1)
+DATADIR = args.DATADIR
+if not os.path.isdir(DATADIR):
+    log.error("%s: Not a directory", DATADIR)
+    sys.exit(1)
 
-DATADIR = sys.argv[1]
 DATAFILES = sorted(os.listdir(DATADIR))
 
 for fn in DATAFILES:
