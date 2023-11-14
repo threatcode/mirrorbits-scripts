@@ -1,7 +1,7 @@
 ## id:
 ##   name: Official Name of the project
 ##   prod: Whether the instance is in production
-##   pkgs: List of package repositories (if any), among: deb, rpm, arch
+##   distro: Use to override detection by script, among: full, partial
 ##   homepage: URL to the homepage of the project
 ##   download: URL to the download page of the project (ideally it has links to the mirrorbits instance)
 ##   mirrorlist: URL to mirrorbits' mirrorlist page (ideally a stable URL)
@@ -25,7 +25,6 @@
 carbonrom:
   name: CarbonROM
   prod: true
-  pkgs: []
   homepage: https://carbonrom.org/
   download: https://get.carbonrom.org/
   mirrorlist: https://mirrorbits.carbonrom.org/angler/CARBON-CR-7.0-OPAL-RELEASE-angler-20210830-1728.zip?mirrorlist
@@ -43,7 +42,6 @@ carbonrom:
 ccc:
   name: Chaos Computer Club
   prod: true
-  pkgs: []
   homepage: https://media.ccc.de/
   download: https://cdn.media.ccc.de/
   mirrorlist: https://cdn.media.ccc.de/NEW?mirrorlist
@@ -61,7 +59,6 @@ ccc:
 endless:
   name: Endless OS
   prod: true
-  pkgs: []
   homepage: https://www.endlessos.org/
   download: https://www.endlessos.org/os-direct-download
   mirrorlist: https://images-dl.endlessm.com/release/lastupdate?mirrorlist
@@ -76,7 +73,6 @@ endless:
 gimp:
   name: GIMP
   prod: true
-  pkgs: []
   homepage: https://www.gimp.org/
   download: https://www.gimp.org/downloads/
   mirrorlist: https://download.gimp.org/pub/gimp/README?mirrorlist
@@ -97,7 +93,6 @@ gimp:
 gnome:
   name: GNOME
   prod: true
-  pkgs: []
   homepage: https://www.gnome.org/
   download: https://www.gnome.org/getting-gnome/
   mirrorlist: https://download.gnome.org/README?mirrorlist
@@ -115,7 +110,6 @@ gnome:
 jellyfin:
   name: Jellyfin
   prod: true
-  pkgs: [deb]
   homepage: https://jellyfin.org/
   download: https://jellyfin.org/downloads/server/
   mirrorlits: https://repo.jellyfin.org/debian/jellyfin_team.gpg.key/mirrorlist
@@ -134,7 +128,6 @@ jellyfin:
 jenkins:
   name: Jenkins
   prod: true
-  pkgs: []
   homepage: https://www.jenkins.io/
   download: https://www.jenkins.io/download/
   mirrorlist: https://get.jenkins.io/war/2.428/jenkins.war?mirrorlist
@@ -146,10 +139,9 @@ jenkins:
     date: 2022-01-16
     url: https://github.com/etix/mirrorbits/pull/117
 
-kde:
-  name: KDE
+kde-download:
+  name: KDE Download
   prod: true
-  pkgs: []
   homepage: https://kde.org/
   download: https://neon.kde.org/download
   mirrorlist: https://download.kde.org/README?mirrorlist
@@ -165,10 +157,9 @@ kde:
     - url: https://kde.org/mirrors/ftp_howto/
       type: documentation
 
-kde-apps:
-  name: KDE Apps
+kde-files:
+  name: KDE Files
   prod: true
-  pkgs: []
   homepage: https://kde.org/
   download: https://neon.kde.org/download
   mirrorlist: https://files.kde.org/last-updated?mirrorlist
@@ -187,7 +178,6 @@ kde-apps:
 kodi:
   name: Kodi
   prod: true
-  pkgs: [deb]
   homepage: https://kodi.tv/
   download: https://kodi.tv/download/
   mirrorlist: http://mirrors.kodi.tv/timestamp.txt?mirrorlist
@@ -205,7 +195,6 @@ kodi:
 lineageos:
   name: LineageOS
   prod: true
-  pkgs: []
   homepage: https://lineageos.org/
   download: https://download.lineageos.org/
   mirrorlist: https://mirrorbits.lineageos.org/TIMESTAMP?mirrorlist
@@ -227,7 +216,7 @@ lineageos:
 mariadb:
   name: MariaDB
   prod: true
-  pkgs: [deb, rpm]
+  distro: partial
   homepage: https://mariadb.org/
   download: https://mariadb.org/download/
   mirrorlist: https://mirror.mariadb.org/repo/10.6/debian/sha256sums.txt?mirrorlist
@@ -245,7 +234,6 @@ mariadb:
 msys2:
   name: MSYS2
   prod: true
-  pkgs: [arch]
   homepage: https://www.msys2.org/
   download: https://packages.msys2.org/
   mirrorlist: https://mirror.msys2.org/lastsync?mirrorlist
@@ -263,7 +251,6 @@ msys2:
 openmandriva:
   name: OpenMandriva
   prod: false
-  pkgs: [rpm]
   homepage: https://www.openmandriva.org/
   download: https://www.openmandriva.org/downloads
   mirrorlist: https://mirror.openmandriva.org/README.txt?mirrorlist
@@ -286,7 +273,6 @@ openmandriva:
 osmc:
   name: OSMC
   prod: false
-  pkgs: [deb]
   homepage: https://osmc.tv/
   download: https://osmc.tv/download/
 #  mirrorlist: ???
@@ -305,7 +291,6 @@ osmc:
 tails:
   name: Tails
   prod: true
-  pkgs: []
   homepage: https://tails.net/
   download: https://tails.net/install/index.en.html
   mirrorlist: https://download.tails.net/tails/project/trace?mirrorlist
@@ -323,7 +308,6 @@ tails:
 termux:
   name: Termux
   prod: false
-  pkgs: [deb]
   homepage: https://termux.dev/
   download: https://packages.termux.dev/
   mirrorlist: https://mirror.termux.dev/termux-main/lastsync?mirrorlist
@@ -333,7 +317,7 @@ termux:
     - rsync:///mirror.surf/termux/
   since:
     date: 2022-11-23
-    url: https://github.com/termux/termux-tools/releases/tag/v1.32.0 
+    url: https://github.com/termux/termux-tools/releases/tag/v1.32.0
   links:
     - url: https://github.com/termux/termux-packages/wiki/Mirrors
       type: documentation
@@ -343,7 +327,6 @@ termux:
 vlc:
   name: VLC
   prod: true
-  pkgs: []
   homepage: https://www.videolan.org/
   download: https://www.videolan.org/vlc/#download
   mirrorlist: https://get.videolan.org/vlc/3.0.19/vlc-3.0.19.tar.xz?mirrorlist

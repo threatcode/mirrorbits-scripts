@@ -10,9 +10,12 @@ import sys
 import urllib.request
 import yaml
 
+from dataclasses import dataclass
 from datetime import datetime
+from typing import List
 
 from bs4 import BeautifulSoup
+
 
 OUTDIR = ""
 
@@ -37,11 +40,8 @@ def parse_footer(text):
 
 
 def do_mirrorstats(instance, url):
-
-    log.info("Requesting %s ...", url)
-
-    version = None
     mirrors = []
+    version = None
 
     # Get the page
     try:
@@ -49,7 +49,7 @@ def do_mirrorstats(instance, url):
             html = f.read()
     except urllib.error.URLError as e:
         log.error("URLError: %s", e)
-        return version, mirrors
+        return mirrors, version
 
     # Parse the page
     html = BeautifulSoup(html, features="lxml")
@@ -57,7 +57,7 @@ def do_mirrorstats(instance, url):
     # Get mirrorbits version
     div = html.body.find("div", attrs={"id": "footer"})
     if not div:
-        log.error("Couldn't find <div id=\"footer\"> in HTML")
+        log.error('Couldn\'t find <div id="footer"> in HTML')
     else:
         footer = div.text.strip()
         version = parse_footer(footer)
@@ -66,7 +66,7 @@ def do_mirrorstats(instance, url):
     # Get the list of mirrors
     div = html.body.find("div", attrs={"id": "chart"})
     if not div:
-        log.error("Couldn't find <div id=\"chart\"> in HTML")
+        log.error('Couldn\'t find <div id="chart"> in HTML')
     else:
         rows = div.find_all("tr")
         rows = rows[1:]  # remove table header
@@ -105,25 +105,62 @@ def do_mirrorstats(instance, url):
     return mirrors, version
 
 
-def do_rsync(instance, url):
+@dataclass
+class FileMatch:
+    name: str
+    endings: List[str]
+    count: int = 0
 
-    log.info("Requesting %s ...", url)
+
+def do_rsync(instance, url):
+    n_files = 0
+    file_types = {}
 
     # Run the rsync command
-    cmd = ["rsync", "-r", "--no-motd", "--timeout=30",
-           "--contimeout=30", "--exclude=.~tmp~/", url]
+    cmd = [
+        "rsync",
+        "-r",
+        "--no-motd",
+        "--timeout=30",
+        "--contimeout=30",
+        "--exclude=.~tmp~/",
+        url,
+    ]
     p = subprocess.run(cmd, capture_output=True, text=True)
     if p.returncode != 0:
-        log.error("Command failed: %s", cmd)
+        log.error("Command failed: %s", " ".join(cmd))
         if p.stderr:
             log.error("%s", p.stderr)
-        return 0
+        return n_files, file_types
 
-    # Count files
-    n_files = 0
+    # Analyze output
+    matchers = [
+        FileMatch("arch-pkg", [".pkg.tar.zst"]),
+        FileMatch("deb-pkg", [".deb"]),
+        FileMatch("rpm-pkg", [".rpm"]),
+        FileMatch("arch-meta", [".db.tar.zst"]),
+        FileMatch("deb-meta", ["/InRelease", "/Release"]),
+        FileMatch("rpm-meta", ["/repomd.xml"]),
+    ]
+
     for line in p.stdout.splitlines():
-        if line.startswith("-"):
-            n_files += 1
+        # skip directories
+        if line.startswith("d"):
+            continue
+        n_files += 1
+        path = line.split(maxsplit=5)[4]
+        for m in matchers:
+            match = False
+            for e in m.endings:
+                if path.endswith(e):
+                    match = True
+                    m.count += 1
+                    break
+            if match:
+                break
+
+    for m in matchers:
+        file_types[m.name] = m.count
 
     # Save output
     if OUTDIR:
@@ -133,126 +170,287 @@ def do_rsync(instance, url):
         with open(f"{OUTDIR}/{instance}.rsync", "w") as f:
             f.write(p.stdout)
 
-    return n_files
+    return n_files, file_types
 
 
-def process_instance(instance, data):
-    log.info(">>> Processing %s", instance)
-
+def process_instance(instance, data, rsync=False):
     # Get and process mirrorstats
     mirrors = []
     version = None
     if True:
-        url = data['mirrorstats']
+        url = data["mirrorstats"]
+        log.info("Fetching page: %s ...", url)
         mirrors, version = do_mirrorstats(instance, url)
         print(f"Mirrorbits version: {version or 'unknown'}")
         print(f"Number of mirrors : {len(mirrors)}")
 
     # Get and process mirrorlist - NOT IMPLEMENTED!
     if False:
-        url = data['mirrorlist']
+        url = data["mirrorlist"]
         mirrors, version = do_mirrorlist(instance, url)
         # todo: https/http variant
 
     # List files on the mirror via rsync
     n_files = 0
-    if True:
-        urls = data['rsync']
+    file_types = {}
+    if rsync is True:
+        urls = data["rsync"]
         random.shuffle(urls)
         for url in urls:
-            n_files = do_rsync(instance, url)
+            log.info("Listing files: %s ...", url)
+            n_files, file_types = do_rsync(instance, url)
             if n_files != 0:
                 break
-        print(f"Number of files: {n_files}")
+        print(f"Number of files: {n_files:,}")
 
     return {
         "version": version,
         "mirrors": mirrors,
         "n_files": n_files,
+        "file_types": file_types,
     }
 
 
-def print_markdown(all_data):
+# printing --------------------------------------------------------------------
 
-    with_links = True
 
-    print()
+@dataclass
+class Column:
+    header: str
+    alignment: str
+    enabled: bool = False
+    width: int = 0
 
-    if with_links:
-        print(f"| Instance                   | Since           | Prod | Pkgs?    | Mir | Act | Files | Version                  |")
-        print(f"| -------------------------- | --------------: | ---- | -------- | --: | --: | ----: | ------------------------ |")
-    else:
-        print(f"| Instance            | Since    | Prod | Pkgs?    | Mir | Act | Files | Version                  |")
-        print(f"| ------------------- | -------: | ---- | -------- | --: | --: | ----: | ------------------------ |")
+
+def print_markdown_table(instances_data):
+    # How to format the 'since' column
+    # TIME_FORMAT = "%B %Y"  # pretty but doesn't sort
+    TIME_FORMAT = "%Y-%m"  # not the most pretty, but it sorts
+
+    # Whether we want HTML links in the output
+    WITH_LINKS = True
+
+    # Whether to show the "Linux Distros" column
+    WITH_DISTRO_INFO = True
+
+    # Whether to show the "Files" column (useful to debug)
+    WITH_FILES_INFO = False
+
+    # If a mirror is outdated for longer than that, consider it's not an
+    # active mirror.
+    MIRROR_ACTIVE_THRESHOLD = 30  # days
+
+    # If a mirror has more packages than that, consider it's a full distro
+    # (as opposed to partial repo, which only provides some packages).
+    FULL_DISTRO_THRESHOLD = 10000
+
+    items_to_print = []
+
+    #
+    # First pass: prepare text to display
+    #
 
     count = 0
-    for inst, data in all_data.items():
+    for inst, data in instances_data.items():
+        count += 1
 
+        # Instance name
         name = data.get("name", inst.capitalize())
-        since = data.get("since", None)
+        if WITH_LINKS:
+            name = f"[{name}][{count:02}a]"
 
+        # Since when mirrorbits was setup
+        since = data.get("since", None)
         if since:
-            # pretty, but doesn't sort
-            #since = since["date"].strftime("%B %Y")
-            since = since["date"].strftime("%Y-%m")
+            since = since["date"].strftime(TIME_FORMAT)
+            if WITH_LINKS:
+                since = f"[{since}][{count:02}b]"
         else:
             since = "unknown"
 
+        # Whether the instance is in prod
         prod = "✓" if data["prod"] else "✗"
-        pkgs = ", ".join(data.get("pkgs", []))
 
         out = data["output"]
+
+        # Mirrorbits version
         version = out["version"] or "unknown"
+
+        # Number of mirrors (total and active)
         mirrors = out["mirrors"]
-
-        n_mirrors = len(mirrors)
-
-        active_mirrors = 0
+        mir = len(mirrors)
+        act = 0
         for item in mirrors:
-            if item['outdated'] < 30:
-                active_mirrors += 1
+            if item["outdated"] < MIRROR_ACTIVE_THRESHOLD:
+                act += 1
 
-        n_files = out["n_files"]
-
-        if n_files > 1000:
-            n_files = round(n_files / 1000)
-            n_files = f"{n_files}k"
-
-        if with_links:
-            name = f"[{name}][{count:02}a]"
-            if since != "unknown":
-                since = f"[{since}][{count:02}b]"
-            print(f"| {name:<26} | {since:>16} | {prod:<4} | {pkgs:<9} | {n_mirrors:>3} | {active_mirrors:>3} | {n_files:>5} | {version:<24} |")
+        # Number of files on the mirror
+        files = out["n_files"]
+        if files >= 1000:
+            files = round(files / 1000)
+            files = f"{files}k"
         else:
-            print(f"| {name:<19} | {since:>9} | {prod:<4} | {pkgs:<9} | {n_mirrors:>3} | {active_mirrors:>3} | {n_files:>5} | {version:<24} |")
+            files = str(files)
 
-        count += 1
+        # File types
+        distro_files = {}
+        full_distro = []
+        partial_repo = []
+        file_types = out["file_types"]
+        for dist in ["arch", "deb", "rpm"]:
+            meta = file_types.get(f"{dist}-meta", 0)
+            pkg = file_types.get(f"{dist}-pkg", 0)
+            if meta == 0 and pkg == 0:
+                continue
+            distro_files[dist] = {"pkg": pkg, "meta": meta}
+            # must have both packages and metadata to be a distro
+            if meta == 0 or pkg == 0:
+                continue
+            # let's find out if it's a partial repo or a full distro
+            distro_type = data.get("distro", None)
+            if distro_type is None:
+                # crude heuristic
+                if pkg >= FULL_DISTRO_THRESHOLD:
+                    distro_type = "full"
+                else:
+                    distro_type = "partial"
+            if distro_type == "full":
+                full_distro.append(dist)
+            elif distro_type == "partial":
+                partial_repo.append(dist)
+            else:
+                log.error("Invalid distro type: %s", distro_type)
 
-    # Add the links
-    if with_links:
+        # Make the short comment
+        distro_info = ""
+        if WITH_DISTRO_INFO:
+            elems = []
+            if full_distro:
+                line = "full distro: " + ", ".join(full_distro)
+                elems.append(line)
+            if partial_repo:
+                line = "partial repo: " + ", ".join(partial_repo)
+                elems.append(line)
+            distro_info = ", ".join(elems)
+
+        # Make the longer details
+        files_info = ""
+        if WITH_FILES_INFO:
+            elems = []
+            for dist, val in distro_files.items():
+                line = f"{dist}: pkg={val['pkg']}, meta={val['meta']}"
+                elems.append(line)
+            files_info = " / ".join(elems)
+
+        # Done
+        item = [name, since, prod, mir, act, files, version, distro_info, files_info]
+        items_to_print.append(item)
+
+    #
+    # Second pass: compute columns width, hide empty columns
+    #
+
+    COLUMNS = [
+        Column("Instance", "left"),
+        Column("Since", "right"),
+        Column("Prod", "right"),
+        Column("Mir", "right"),
+        Column("Act", "right"),
+        Column("Files", "right"),
+        Column("Version", "left"),
+        Column("Linux Distros", "left"),
+        Column("Files", "left"),
+    ]
+
+    header_item = [c.header for c in COLUMNS]
+
+    def update_width(item):
+        for i, v in enumerate(item):
+            col = COLUMNS[i]
+            l = len(str(v))
+            if l > col.width:
+                col.width = l
+
+    # Compute the width for each column
+    update_width(header_item)
+    for item in items_to_print:
+        update_width(item)
+
+    # Hide columns if ever they're empty
+    for item in items_to_print:
+        for i, v in enumerate(item):
+            col = COLUMNS[i]
+            if col.enabled:
+                continue
+            if str(v) in ["", "0"]:
+                continue
+            col.enabled = True
+
+    #
+    # Last pass: print
+    #
+
+    def print_line(item):
+        for i, v in enumerate(item):
+            col = COLUMNS[i]
+            if not col.enabled:
+                continue
+            l = col.width
+            if col.alignment == "right":
+                print(f"| {v:>{l}} ", end="")
+            else:
+                print(f"| {v:<{l}} ", end="")
+        print("|")
+
+    def print_sep():
+        for col in COLUMNS:
+            if not col.enabled:
+                continue
+            l = col.width
+            v = ":"
+            if col.alignment == "right":
+                print(f"| {v:->{l}} ", end="")
+            else:
+                print(f"| {v:-<{l}} ", end="")
+        print("|")
+
+    # Print the table
+    print()
+    print_line(header_item)
+    print_sep()
+    for item in items_to_print:
+        print_line(item)
+
+    # Print the links
+    if WITH_LINKS:
         print()
         count = 0
-        for inst, data in all_data.items():
+        for inst, data in instances_data.items():
+            count += 1
             print(f"[{count:02}a]: {data['homepage']}")
             if "since" in data:
                 print(f"[{count:02}b]: {data['since']['url']}")
-            count += 1
 
 
-# main
+# main ------------------------------------------------------------------------
 
 
-parser = argparse.ArgumentParser(description="Details on mirrorbits instances in the wild")
+parser = argparse.ArgumentParser(
+    description="Details on mirrorbits instances in the wild")
 parser.add_argument("-d", "--debug", action="store_true",
     help="print debug messages")
-parser.add_argument("-i", "--instance",
-    help="process only a particular instance")
+parser.add_argument("-i", "--include", action="append",
+    help="process only this instance (can be set multiple times)")
 parser.add_argument("-o", "--outdir",
     help="dump a lot of data into outdir")
+parser.add_argument("-r", "--rsync", action="store_true",
+    help="enable rsync listing (takes a while)")
+parser.add_argument("-x", "--exclude", action="append",
+    help="exclude this instance (can be set multiple times)")
 parser.add_argument("YAML_FILE")
 args = parser.parse_args()
 
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 log.addHandler(logging.StreamHandler())
 log.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
@@ -261,15 +459,19 @@ OUTDIR = args.outdir
 with open(args.YAML_FILE, "r") as f:
     yaml_data = yaml.safe_load(f)
 
-new_data = {}
+output = {}
 for inst, data in yaml_data.items():
-    # Might want to skip
-    if args.instance and inst != args.instance:
+    if args.include and inst not in args.include:
+        log.debug(">>> Skip %s (not included)", inst)
         continue
 
-    # Process
-    result = process_instance(inst, data)
-    new_data[inst] = data
-    new_data[inst]["output"] = result
+    if args.exclude and inst in args.exclude:
+        log.debug(">>> Skip %s (excluded)", inst)
+        continue
 
-print_markdown(new_data)
+    log.info(">>> Process %s", inst)
+    result = process_instance(inst, data, rsync=args.rsync)
+    output[inst] = data
+    output[inst]["output"] = result
+
+print_markdown_table(output)
