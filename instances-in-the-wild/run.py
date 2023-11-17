@@ -181,8 +181,8 @@ def process_instance(instance, data, rsync=False):
         url = data["mirrorstats"]
         log.info("Fetching page: %s ...", url)
         mirrors, version = do_mirrorstats(instance, url)
-        print(f"Mirrorbits version: {version or 'unknown'}")
-        print(f"Number of mirrors : {len(mirrors)}")
+        log.info(f"Mirrorbits version: {version or 'unknown'}")
+        log.info(f"Number of mirrors : {len(mirrors)}")
 
     # Get and process mirrorlist - NOT IMPLEMENTED!
     if False:
@@ -201,7 +201,7 @@ def process_instance(instance, data, rsync=False):
             n_files, file_types = do_rsync(instance, url)
             if n_files != 0:
                 break
-        print(f"Number of files: {n_files:,}")
+        log.info(f"Number of files: {n_files:,}")
 
     return {
         "version": version,

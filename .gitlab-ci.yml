@@ -1,0 +1,23 @@
+image: "debian:12-slim"
+
+variables:
+  ## Create a shallow git copy
+  GIT_DEPTH: 1
+
+stages:
+  - wild
+
+instances-in-the-wild:
+  before_script:
+    - apt update
+    - apt-get --yes --no-install-recommends install python3-minimal python3-yaml python3-bs4 python3-lxml ca-certificates rsync
+  script:
+    - cd ./instances-in-the-wild/
+    #- ./run.py ./mirrorbits.yaml
+    - ./run.py ./mirrorbits.yaml --rsync --outdir ./data-out/ | tee ./output.md
+    - ./rsync-overview.sh ./data-out/ | tee ./rsync-overview.md
+  after_script:
+    - rm -vrf ./instances-in-the-wild/data-out/
+  artifacts:
+    paths:
+      - ./instances-in-the-wild/*.md
