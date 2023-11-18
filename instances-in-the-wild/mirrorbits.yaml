@@ -390,7 +390,6 @@ vlc:
 xcpng:
   name: XCP-ng
   prod: true
-  pkgs: [rpm]
   homepage: https://xcp-ng.org/
   download: https://xcp-ng.org/#easy-to-install
   mirrorlist: https://mirrors.xcp-ng.org/README.txt?mirrorlist
