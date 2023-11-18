@@ -22,3 +22,13 @@ output into a directory:
 
 There are more settings available, but not exposed via the command-line, so
 have a look at the script and modify what needs be.
+
+## Discover mirrorbits instances
+
+- mirrorbits's [README.md](https://github.com/etix/mirrorbits/blob/master/README.md#is-it-production-ready)
+- HTTP Response Header: `Server: Mirrorbits/vX.Y.Z`
+  - [shodan.io](https://www.shodan.io/search?query=mirrorbits)
+  - [censys.io: `services.http.response.headers.server:mirrorbits`](https://search.censys.io/search?resource=hosts&q=services.http.response.headers.server%3Amirrorbits)
+- HTTP URL: `?mirrorstats` / `?mirrorlist`
+  - [Google: `mirrorbits inurl:"?mirrorstats"`](https://www.google.com/search?q=mirrorbits+inurl%3A%22%3Fmirrorstats%22)
+  - [Google: `mirrorbits inurl:"?mirrorlist"`](https://www.google.com/search?q=mirrorbits+inurl%3A%22%mirrorlist%22)
