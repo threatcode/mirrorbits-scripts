@@ -56,6 +56,17 @@ ccc:
     - url: https://media.ccc.de/about.html
       type: documentation
 
+efa:
+  Name: eFa
+  prod: true
+  homepage: https://efa-project.org/
+  download: https://efa-project.org/download/
+  mirrorlist: https://mirrors.efa-project.org/?mirrorlist
+  mirrorstats: https://mirrors.efa-project.org/?mirrorstats
+  rsync: []
+  comments:
+    - only two mirrors owned by eFa, no public rsync, or documentation/notes about using mirrorbits
+
 endless:
   name: Endless OS
   prod: true
@@ -69,6 +80,19 @@ endless:
   links:
     - url: https://support.endlessos.org/en/dev/mirroring
       type: documentation
+
+freifunk:
+  Name: Freifunk
+  prod: true
+  homepage: https://freifunk.net/
+  download: https://media.freifunk.net/
+  mirrorlist: https://cdn.media.freifunk.net/mirrorbits/?mirrorlist
+  mirrorstats: https://cdn.media.freifunk.net/mirrorbits/?mirrorstats
+  rsync:
+    - rsync://cdn.media.freifunk.net/repo/
+    - rsync://cdnmaster.media.freifunk.net/repo/
+  comments:
+    - only one mirror owned by freifunk, used for media streaming
 
 gimp:
   name: GIMP
@@ -191,6 +215,25 @@ kodi:
   links:
     - url: https://kodi.wiki/view/Mirrors
       type: documentation
+
+libreelec:
+  Name: LibreELEC
+  prod: true
+  homepage: https://libreelec.tv/
+  download: https://libreelec.tv/downloads/
+  mirrorlist: https://releases.libreelec.tv/hypercon-LE.jar?mirrorlist # Alt: https://releases.libreelec.tv/LibreELEC-RPi4.arm-11.0.1.img.gz?mirrorlist
+  mirrorstats: https://releases.libreelec.tv/mirrorstats
+  rsync:
+    - rsync://releases.libreelec.tv/
+  since:
+    date: 2022-02-21
+    url: https://github.com/LibreELEC/documentation/commit/ec35c15f81b817f94096d48240f53901f7965308
+    title: "GitBook: [#79] mirrorbits changes"
+  links:
+    - url: https://wiki.libreelec.tv/project/mirrors
+      type: render documentation
+    - url: https://github.com/LibreELEC/documentation/commits/master/project/mirrors.md
+      type: markdown documentation
 
 lineageos:
   name: LineageOS
@@ -347,7 +390,6 @@ vlc:
 xcpng:
   name: XCP-ng
   prod: true
-  pkgs: [rpm]
   homepage: https://xcp-ng.org/
   download: https://xcp-ng.org/#easy-to-install
   mirrorlist: https://mirrors.xcp-ng.org/README.txt?mirrorlist
