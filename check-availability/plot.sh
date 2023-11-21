@@ -7,6 +7,12 @@ if ! command -v gnuplot >/dev/null 2>&1; then
     exit 1
 fi
 
+args=
 filename=$(basename ${1%.dat})
-gnuplot -c plot-total.plg $1 $filename
-gnuplot -c plot-selected-excluded.plg $1 $filename
+
+if [ "${GITLAB_CI:-}" ]; then
+    args="-e png=1"
+fi
+
+gnuplot $args -c plot-total.plg $1 $filename
+gnuplot $args -c plot-selected-excluded.plg $1 $filename
