@@ -8,7 +8,7 @@ if ! command -v gnuplot >/dev/null 2>&1; then
 fi
 
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 [analyze-json.data]" >&2
+    echo "Usage: $0 [analyze-json.dat]" >&2
     exit 1
 fi
 
@@ -17,6 +17,12 @@ if [ ! -e "$1" ]; then
     exit 1
 fi
 
+args=
 filename=$(basename ${1%.dat})
-gnuplot -c plot-total.plg $1 $filename
-gnuplot -c plot-selected-excluded.plg $1 $filename
+
+if [ "${GITLAB_CI:-}" ]; then
+    args="-e png=1"
+fi
+
+gnuplot $args -c plot-total.plg $1 $filename
+gnuplot $args -c plot-selected-excluded.plg $1 $filename
