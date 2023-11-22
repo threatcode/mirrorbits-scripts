@@ -7,6 +7,8 @@ replies with a JSON file that contains the result of the redirection algorithm.
 Let that run long enough (i.e. a few days), then analyze and plot the result,
 to see whether the file was available from all mirrors reliably.
 
+<!-- REF: https://github.com/etix/mirrorbits/issues/85 -->
+
 NOTE: This requires the mirrorbits instances to have JSON output mode enabled,
 which is it by default.
 This can be set in the mirrorbits configuration option: `OutputMode:`, using
