@@ -17,7 +17,7 @@ variables:
 
 check-availability:
   variables:
-    MIRROR: https://http-staging.kali.org/README
+    MIRROR: http://http.kali.org/README
     MIRROR_TIMEOUT: 5m
   before_script:
     - apt update
